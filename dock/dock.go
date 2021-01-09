@@ -16,30 +16,30 @@ const (
 )
 
 type Dock struct {
-	UIEventC <-chan ui.Event
-	CoreMsgEventC chan *cpb.BroadcastMsg
-	TimeTickC chan time.Time
+	mUIEventC <-chan ui.Event
+	mCoreMsgEventC <-chan *cpb.BroadcastMsg
+	mTimeTickC <-chan time.Time
 	Grid *ui.Grid
 }
 
-func NewDock(pollUIEvent <-chan ui.Event) *Dock {
+func NewDock(pollUIEvent <-chan ui.Event, coreMsgEventC <-chan *cpb.BroadcastMsg, timeTickC <-chan time.Time) *Dock {
 	d := &Dock{
-		UIEventC: pollUIEvent,
-		CoreMsgEventC: make(chan *cpb.BroadcastMsg),
-		TimeTickC: make(chan time.Time),
+		mUIEventC: pollUIEvent,
+		mCoreMsgEventC: coreMsgEventC,
+		mTimeTickC: timeTickC,
 		Grid: ui.NewGrid(),
 	}
-	termWidth, termHeight := ui.TerminalDimensions()
-	d.Grid.SetRect(0, 0, termWidth, termHeight)
 	return d
 }
 
 func (d *Dock) Loop(){
-	select{
-		case e := <-d.UIEventC:
+	for {
+		select{
+		case e := <-d.mUIEventC:
 			log.Debugf("Recv UI event: %v", e)
 			switch e.ID { // event string/identifier
-			case "q", "<C-c>": // press 'q' or 'C-c' to quit
+			case "<C-c>": // press 'C-c' to quit
+				log.Info("Received C-c. Closing Dock")
 				return
 			case "<MouseLeft>":
 				// payload := e.Payload.(ui.Mouse)
@@ -54,15 +54,18 @@ func (d *Dock) Loop(){
 			case ui.KeyboardEvent: // handle all key presses
 				// eventID = e.ID // keypress string
 			}
-		case <-d.CoreMsgEventC:
+		case <-d.mCoreMsgEventC:
 			log.Debugf("Recv Core msg event: %v", d)
 		// use Go's built-in tickers for updating and drawing data
-		case <-d.TimeTickC:
+		case <-d.mTimeTickC:
 			d.TimeTick()
+		}
 	}
 }
 
 func (d *Dock) TimeTick(){
+	// termWidth, termHeight := ui.TerminalDimensions()
+	// d.Grid.SetRect(0, 0, termWidth, termHeight)
 	ui.Render(d.Grid)
 }
 
