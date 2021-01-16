@@ -108,7 +108,7 @@ func main() {
 
 	// init dock
 	timeTickCh := make(chan time.Time)
-	gameDock := dock.NewDock(ui.PollEvents(), coreClientConn.GetBroadcastMsgCh(), timeTickCh)
+	gameDock := dock.NewDock(coreClientConn.GetGameCoreClient(), ui.PollEvents(), coreClientConn.GetBroadcastMsgCh(), timeTickCh)
 
 	log.Info("Game Dock Event Loop start")
 	gameDock.Loop()
