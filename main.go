@@ -11,8 +11,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/SailGame/GoDock/component"
 	"github.com/SailGame/GoDock/conn"
 	"github.com/SailGame/GoDock/dock"
+	"github.com/SailGame/GoDock/jui"
 	ui "github.com/gizak/termui/v3"
 )
 
@@ -106,9 +108,19 @@ func main() {
 	}
 	defer ui.Close()
 
+	// init jui
+	store := jui.NewDefaultStore()
+	router := jui.NewDefaultRouter()
+	store.SetRouter(router)
+	store.SetToken(coreClientConn.GetToken())
+	store.SetGameCoreClient(coreClientConn.GetGameCoreClient())
+
+	// init components
+	component.Init(store)
+	router.Navigate("/", nil)
 	// init dock
-	timeTickCh := make(chan time.Time)
-	gameDock := dock.NewDock(coreClientConn.GetGameCoreClient(), ui.PollEvents(), coreClientConn.GetBroadcastMsgCh(), timeTickCh)
+	ticker := time.NewTicker(time.Millisecond * 100).C
+	gameDock := dock.NewDock(store, ui.PollEvents(), coreClientConn.GetBroadcastMsgCh(), ticker)
 
 	log.Info("Game Dock Event Loop start")
 	gameDock.Loop()

@@ -77,6 +77,10 @@ func (uc *GameCoreConn) GetBroadcastMsgCh() <-chan *cpb.BroadcastMsg {
 	return uc.mMsgC
 }
 
+func (uc *GameCoreConn) GetToken() string {
+	return uc.mToken
+}
+
 func (uc *GameCoreConn) GetGameCoreClient() cpb.GameCoreClient {
 	return uc.mCoreClient
 }

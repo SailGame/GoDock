@@ -1,32 +1,34 @@
 package dock
 
 import (
+	"fmt"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	ui "github.com/gizak/termui/v3"
+	"github.com/SailGame/GoDock/jui"
 	cpb "github.com/SailGame/GoDock/pb/core"
+	ui "github.com/gizak/termui/v3"
+	"github.com/gizak/termui/v3/widgets"
+	log "github.com/sirupsen/logrus"
 )
 
 type Dock struct {
-	mGameCoreClient cpb.GameCoreClient
+	mStore jui.Store
 	mUIEventC <-chan ui.Event
 	mCoreMsgEventC <-chan *cpb.BroadcastMsg
 	mTimeTickC <-chan time.Time
-	mRouter Router
+	mGrid *ui.Grid
 }
 
-func NewDock(gameCoreClient cpb.GameCoreClient, pollUIEvent <-chan ui.Event, coreMsgEventC <-chan *cpb.BroadcastMsg, timeTickC <-chan time.Time) *Dock {
+func NewDock(store jui.Store, pollUIEvent <-chan ui.Event, coreMsgEventC <-chan *cpb.BroadcastMsg, timeTickC <-chan time.Time) *Dock {
 	d := &Dock{
-		mGameCoreClient: gameCoreClient,
+		mStore: store,
 		mUIEventC: pollUIEvent,
 		mCoreMsgEventC: coreMsgEventC,
 		mTimeTickC: timeTickC,
-		mRouter: NewDefaultRouter(map[string]Component{
-			"/": NewLobbyComponent(gameCoreClient),
-			// "/room": NewRoomComponent(),
-		}),
+		mGrid: ui.NewGrid(),
 	}
+	termWidth, termHeight := ui.TerminalDimensions()
+	d.mGrid.SetRect(0, 0, termWidth, termHeight)
 	return d
 }
 
@@ -34,28 +36,23 @@ func (d *Dock) Loop(){
 	for {
 		select{
 		case e := <-d.mUIEventC:
-			log.Debugf("Recv UI event: %v", e)
+			log.Debugf("Dock Recv UI event: %v", e)
 			switch e.ID { // event string/identifier
 			case "<C-c>": // press 'C-c' to quit
-				log.Info("Received C-c. Closing Dock")
+				log.Info("Dock Received C-c. Closing Dock")
 				return
-			case "<MouseLeft>":
-				// payload := e.Payload.(ui.Mouse)
-				// x, y := payload.X, payload.Y
 			case "<Resize>":
 				payload := e.Payload.(ui.Resize)
-				d.mRouter.GetCurrentComponent().GetGrid().SetRect(0, 0, payload.Width, payload.Height)
+				d.mGrid.SetRect(0, 0, payload.Width, payload.Height)
 			case "<F1>":
-				d.mRouter.NavigateBack()
+				d.mStore.GetRouter().NavigateBack()
 			default:
-				d.mRouter.GetCurrentComponent().HandleUIEvent(e)
+				d.GetCurrentComponent().HandleUIEvent(e)
 			}
 		case e := <-d.mCoreMsgEventC:
 			log.Debugf("Recv Core msg event: %v", d)
-			d.mRouter.GetCurrentComponent().HandleServerEvent(e)
+			d.GetCurrentComponent().HandleServerEvent(e)
 		case <-d.mTimeTickC:
-			log.Debugf("TimeTick")
-			d.mRouter.GetCurrentComponent().TimeTick()
 			d.TimeTick()
 		}
 	}
@@ -64,5 +61,16 @@ func (d *Dock) Loop(){
 func (d *Dock) TimeTick(){
 	// termWidth, termHeight := ui.TerminalDimensions()
 	// d.Grid.SetRect(0, 0, termWidth, termHeight)
-	ui.Render(d.mRouter.GetCurrentComponent().GetGrid())
+	d.GetCurrentComponent().TimeTick()
+	breadcrumb := widgets.NewParagraph()
+	breadcrumb.Text = fmt.Sprintf("CurrentPage: %s", d.mStore.GetRouter().GetCurrentPath()) 
+	d.mGrid.Set(
+		ui.NewRow(0.2/2, ui.NewCol(1, breadcrumb)),
+		ui.NewRow(1.0/2, ui.NewCol(1, d.GetCurrentComponent().GetGrid())),
+	)
+	ui.Render(d.mGrid)
+}
+
+func (d *Dock) GetCurrentComponent() jui.Component{
+	return d.mStore.GetRouter().GetCurrentComponent()
 }
