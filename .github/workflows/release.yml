@@ -40,7 +40,7 @@ jobs:
       - name: Create package
         id: package
         run: |
-          PACKAGE_NAME=sailgame.core.${GITHUB_REF#refs/tags/}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
+          PACKAGE_NAME=sailgame.godock.${GITHUB_REF#refs/tags/}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
           cp README.md build/
           cp LICENSE build/
           tar -czvf $PACKAGE_NAME -C build .
