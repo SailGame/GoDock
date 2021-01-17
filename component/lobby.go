@@ -12,6 +12,10 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
+const (
+	pageRoomNum int = 5
+)
+
 type Lobby struct {
 	Default
 	mRooms []data.Room
@@ -31,6 +35,7 @@ func NewLobby(d *Default) *Lobby{
 
 func (lc *Lobby) HandleUIEvent(e ui.Event) bool{
 	log.Debugf("Lobby Recv UI event: %s", e.ID)
+	up := false
 	switch e.ID {
 	case "l":
 		lc.listRoom()
@@ -38,14 +43,26 @@ func (lc *Lobby) HandleUIEvent(e ui.Event) bool{
 		lc.createRoom()
 	case "j":
 		lc.joinRoom()
+	case "Up":
+		up = true
+		fallthrough
+	case "Down":
+		if len(lc.mRooms) == 0{
+			break
+		}
+		if up{
+			lc.mSelectedRoom = (lc.mSelectedRoom + 1) % len(lc.mRooms)
+		}
+		if lc.mSelectedRoom == 0{
+			lc.mSelectedRoom = len(lc.mRooms) - 1
+		}else{
+			lc.mSelectedRoom = lc.mSelectedRoom - 1
+		}
+		lc.refresh()
 	default:
 		return false
 	}
 	return true
-}
-
-func (lc *Lobby) HandleServerEvent(*cpb.BroadcastMsg) bool{
-	return false
 }
 
 // lifecycle
@@ -58,6 +75,7 @@ func (lc *Lobby) WillMount(interface{}){
 func (lc *Lobby) Reset() error{
 	lc.mRooms = lc.mRooms[:0]
 	lc.mSelectedRoom = 0
+	lc.refresh()
 	return nil
 }
 
@@ -85,15 +103,20 @@ func (lc *Lobby) listRoom(){
 	}
 	lc.mRooms = lc.mRooms[:0]
 	for _, v := range(ret.Room) {
-		lc.mRooms = append(lc.mRooms, data.Room{*v})
+		lc.mRooms = append(lc.mRooms, data.Room{v})
 	}
 	lc.mSelectedRoom = 0
 	lc.refresh()
 }
 
 func (lc *Lobby) joinRoom(){
+	roomNum := len(lc.mRooms)
+	if lc.mSelectedRoom < 0 || lc.mSelectedRoom >= roomNum{
+		return
+	}
+	roomID := lc.mRooms[lc.mSelectedRoom].RoomId
 	ctx, _ := context.WithTimeout(context.TODO(), 3 * time.Second)
-	ret, err := lc.mStore.GetGameCoreClient().JoinRoom(ctx, &cpb.JoinRoomArgs{Token: lc.mStore.GetToken(), RoomId: int32(lc.mSelectedRoom)})
+	ret, err := lc.mStore.GetGameCoreClient().JoinRoom(ctx, &cpb.JoinRoomArgs{Token: lc.mStore.GetToken(), RoomId: roomID})
 	if err != nil {
 		log.Fatalf("JoinRoom %v", err)
 	}
@@ -113,8 +136,10 @@ func (lc *Lobby) joinRoom(){
 
 func (lc *Lobby) refresh(){
 	roomNum := len(lc.mRooms)
-	roomRows := make([]interface{}, 0, roomNum)
-	for i, r := range lc.mRooms{
+	roomRows := make([]interface{}, 0, pageRoomNum)
+	begin := lc.mSelectedRoom % pageRoomNum 
+	for i := begin; i < roomNum && i < begin + pageRoomNum; i++ {
+		r := lc.mRooms[i]
 		card := widgets.NewParagraph()
 		if i == lc.mSelectedRoom {
 			card.BorderStyle = ui.NewStyle(ui.ColorBlack, ui.ColorWhite)

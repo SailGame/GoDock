@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -70,10 +71,13 @@ func (room *Room) WillUnmount(){
 }
 
 func (room *Room) Reset() error{
+	// TODO
 	return nil
 }
 
 func (room *Room) ready(){
+	log.Debugf(fmt.Sprintf("Room Change Ready State. Curr(%v)", room.mReady))
+
 	var grpcReady cpb.Ready = cpb.Ready_UNSET
 	if room.mReady{
 		grpcReady = cpb.Ready_CANCEL
@@ -98,6 +102,7 @@ func (room *Room) ready(){
 		}
 	}
 	room.mReady = !room.mReady
+	room.refresh()
 }
 
 func (room *Room) set(){

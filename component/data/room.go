@@ -5,13 +5,13 @@ import (
 )
 
 type Room struct {
-	cpb.Room
+	*cpb.Room
 }
 
 type RoomDetails struct {
-	cpb.RoomDetails
+	*cpb.RoomDetails
 }
 
 type RoomUser struct {
-	cpb.RoomUser
+	*cpb.RoomUser
 }
