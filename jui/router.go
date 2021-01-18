@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen -destination=mocks/router.go -package=mocks . Router
 type Router interface {
 	Navigate(path string, args interface{}) error
 	NavigateBack() error

@@ -1,9 +1,7 @@
 package component
 
 import (
-	"context"
 	"fmt"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -56,12 +54,7 @@ func (room *Room) WillMount(interface{}){
 
 func (room *Room) WillUnmount(){
 	log.Debugf("Room Will Unmount")
-
-	ctx, _ := context.WithTimeout(context.TODO(), 3 * time.Second)
-	ret, err := room.mStore.GetGameCoreClient().ExitRoom(ctx, &cpb.ExitRoomArgs{Token: room.mStore.GetToken()})
-	if err != nil {
-		log.Fatalf("ExitRoom %v", err)
-	}
+	ret := room.mStore.GetGameCoreClient().ExitRoom(&cpb.ExitRoomArgs{})
 	if ret.Err != cpb.ErrorNumber_OK {
 		switch ret.Err {
 		case cpb.ErrorNumber_ExitRoom_InvalidToken: // TODO: display this msg
@@ -84,17 +77,7 @@ func (room *Room) ready(){
 	}else{
 		grpcReady = cpb.Ready_READY
 	}
-	ctx, _ := context.WithTimeout(context.TODO(), 3 * time.Second)
-	ret, err := room.mStore.GetGameCoreClient().OperationInRoom(
-		ctx,
-		&cpb.OperationInRoomArgs{
-			Token: room.mStore.GetToken(),
-			RoomOperation: &cpb.OperationInRoomArgs_Ready{ Ready: grpcReady },
-	})
-
-	if err != nil {
-		log.Fatalf("Ready %v", err)
-	}
+	ret := room.mStore.GetGameCoreClient().Ready(&cpb.OperationInRoomArgs_Ready{ Ready: grpcReady })
 	if ret.Err != cpb.ErrorNumber_OK {
 		switch ret.Err {
 		case cpb.ErrorNumber_OperRoom_CannotChangeReadyState: // TODO

@@ -5,6 +5,7 @@ import (
 	cpb "github.com/SailGame/GoDock/pb/core"
 )
 
+//go:generate mockgen -destination=mocks/component.go -package=mocks . Component
 type Component interface {
 	GetGrid() *ui.Grid
 	HandleUIEvent(ui.Event) bool
