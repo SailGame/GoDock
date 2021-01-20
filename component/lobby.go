@@ -1,11 +1,9 @@
 package component
 
 import (
-	"context"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 
-	"time"
 	"github.com/SailGame/GoDock/component/data"
 	cpb "github.com/SailGame/GoDock/pb/core"
 	ui "github.com/gizak/termui/v3"
@@ -80,27 +78,13 @@ func (lc *Lobby) Reset() error{
 }
 
 func (lc *Lobby) createRoom(){
-	ctx, _ := context.WithTimeout(context.TODO(), 3 * time.Second)
-	ret, err := lc.mStore.GetGameCoreClient().CreateRoom(ctx, &cpb.CreateRoomArgs{Token: lc.mStore.GetToken()})
-	if err != nil {
-		log.Fatalf("CreateRoom %v", err)
-	}
-	if ret.Err != cpb.ErrorNumber_OK {
-		log.Fatalf("CreateRoom %v", ret.Err)
-	}
+	ret := lc.mStore.GetGameCoreClient().CreateRoom(&cpb.CreateRoomArgs{})
 	lc.mSelectedRoom = int(ret.RoomId)
 	lc.joinRoom()
 }
 
 func (lc *Lobby) listRoom(){
-	ctx, _ := context.WithTimeout(context.TODO(), 3 * time.Second)
-	ret, err := lc.mStore.GetGameCoreClient().ListRoom(ctx, &cpb.ListRoomArgs{GameName: lc.mListGameName})
-	if err != nil {
-		log.Fatalf("ListRoom %v", err)
-	}
-	if ret.Err != cpb.ErrorNumber_OK {
-		log.Fatalf("ListRoom %v", ret.Err)
-	}
+	ret := lc.mStore.GetGameCoreClient().ListRoom(&cpb.ListRoomArgs{GameName: lc.mListGameName})
 	lc.mRooms = lc.mRooms[:0]
 	for _, v := range(ret.Room) {
 		lc.mRooms = append(lc.mRooms, data.Room{v})
@@ -115,17 +99,12 @@ func (lc *Lobby) joinRoom(){
 		return
 	}
 	roomID := lc.mRooms[lc.mSelectedRoom].RoomId
-	ctx, _ := context.WithTimeout(context.TODO(), 3 * time.Second)
-	ret, err := lc.mStore.GetGameCoreClient().JoinRoom(ctx, &cpb.JoinRoomArgs{Token: lc.mStore.GetToken(), RoomId: roomID})
-	if err != nil {
-		log.Fatalf("JoinRoom %v", err)
-	}
+	ret := lc.mStore.GetGameCoreClient().JoinRoom(&cpb.JoinRoomArgs{RoomId: roomID})
 	if ret.Err != cpb.ErrorNumber_OK {
 		switch ret.Err {
 		case cpb.ErrorNumber_JoinRoom_FullRoom: // TODO: display this msg
 		case cpb.ErrorNumber_JoinRoom_InvalidRoomID: // TODO: display this msg
 		case cpb.ErrorNumber_JoinRoom_UserIsInAnotherRoom: // TODO: display this msg
-			log.Fatalf("JoinRoom %v", ret.Err)
 		case cpb.ErrorNumber_JoinRoom_InvalidToken:
 			log.Fatalf("JoinRoom %v", ret.Err)
 		}

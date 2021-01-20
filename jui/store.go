@@ -1,16 +1,15 @@
 package jui
 
 import (
-	cpb "github.com/SailGame/GoDock/pb/core"
+	"github.com/SailGame/GoDock/conn"
 )
 
+//go:generate mockgen -destination=mocks/store.go -package=mocks . Store
 type Store interface {
 	SetRouter(Router)
-	SetGameCoreClient(cpb.GameCoreClient)
+	SetGameCoreClient(conn.GameCoreClient)
 	GetRouter() Router
-	GetGameCoreClient() cpb.GameCoreClient
-	SetToken(string)
-	GetToken() string
+	GetGameCoreClient() conn.GameCoreClient
 
 	Set(key string, value interface{})
 	Get(key string) (interface{}, bool)
@@ -18,7 +17,7 @@ type Store interface {
 
 type DefaultStore struct {
 	mRouter Router
-	mGameCoreClient cpb.GameCoreClient
+	mGameCoreClient conn.GameCoreClient
 	mToken string
 	mData map[string]interface{}
 }
@@ -36,7 +35,7 @@ func (ds *DefaultStore) SetRouter(r Router){
 	ds.mRouter = r
 }
 
-func (ds *DefaultStore) SetGameCoreClient(gcc cpb.GameCoreClient){
+func (ds *DefaultStore) SetGameCoreClient(gcc conn.GameCoreClient){
 	ds.mGameCoreClient = gcc
 }
 
@@ -44,16 +43,8 @@ func (ds *DefaultStore) GetRouter() Router{
 	return ds.mRouter
 }
 
-func (ds *DefaultStore) GetGameCoreClient() cpb.GameCoreClient{
+func (ds *DefaultStore) GetGameCoreClient() conn.GameCoreClient{
 	return ds.mGameCoreClient
-}
-
-func (ds *DefaultStore) SetToken(t string){
-	ds.mToken = t
-}
-
-func (ds *DefaultStore) GetToken() string{
-	return ds.mToken
 }
 
 func (ds *DefaultStore) Set(key string, value interface{}){

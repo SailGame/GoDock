@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	cpb "github.com/SailGame/GoDock/pb/core"
 	log "github.com/sirupsen/logrus"
 
 	"google.golang.org/grpc"
@@ -26,6 +28,7 @@ var (
 	logFile            = flag.String("log_file", "./godock.log", "The log file of GoDock")
 	logLevel           = flag.String("log_level", "Info", "The log level of GoDock (Debug/Info/Warn/Error)")
 	userName           = flag.String("user_name", "sail", "Your name")
+	passWord           = flag.String("password", "", "Your password")
 )
 
 func initLog() {
@@ -72,16 +75,15 @@ func initGrpcDialOption() []grpc.DialOption {
 
 func initGrpcClient(grpcConn *grpc.ClientConn) *conn.GameCoreConn{
 	// init grpc client
-	coreClientConn := conn.NewGameCoreConn(grpcConn)
-	err := coreClientConn.Login(*userName)
+	coreClientConn := conn.NewGameCoreConn(context.TODO(), grpcConn)
+	coreClientConn.Login(&cpb.LoginArgs{
+		UserName: *userName,
+		Password: *passWord,
+	})
+	err := coreClientConn.ListenToCore()
 	if err != nil{
 		log.Fatal(err)
 	}
-	err = coreClientConn.ListenToCore()
-	if err != nil{
-		log.Fatal(err)
-	}
-
 	go coreClientConn.LoopListenStream(func() {
 		log.Fatalf("Disconnect from Core Server");
 	})
@@ -112,8 +114,7 @@ func main() {
 	store := jui.NewDefaultStore()
 	router := jui.NewDefaultRouter()
 	store.SetRouter(router)
-	store.SetToken(coreClientConn.GetToken())
-	store.SetGameCoreClient(coreClientConn.GetGameCoreClient())
+	store.SetGameCoreClient(coreClientConn)
 
 	// init components
 	component.Init(store)
